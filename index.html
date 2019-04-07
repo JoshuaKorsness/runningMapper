@@ -77,7 +77,7 @@
             let goalLat = startLat + runDistInc; 
 
             // Loop runs until routDist matches goalDist
-            while (stop === false && counter < 5) {
+            function mapLoop() {
               counter++;  // Prevent infinite loops
               console.log(`goalLat = ${goalLat}`);
 
@@ -97,9 +97,10 @@
                   // If distance delta too large, iterate goal position
                   if (routDist - goalRunDist > 0.2) {
                     lastDist = routDist;
-                    goalLat = goalLat + 0.01;
+                    goalLat += 0.01;
                     console.log(`runDistInc = ${runDistInc}`);
                     console.log(`Current run distance = ${routDist}`);
+                    mapLoop(); 
                   }
                   // If distance delta is close enough, plot route 
                   else {
@@ -114,6 +115,9 @@
                 }
               });
             }
+
+            mapLoop(); 
+
           }
           else {
             alert('Geocode failure');
