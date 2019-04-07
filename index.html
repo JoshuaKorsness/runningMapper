@@ -76,7 +76,7 @@
             const startLong = results[0].geometry.bounds.ga.j;
             let goalLat = startLat + runDistInc; 
 
-            // Loop runs until routDist matches goalDist
+            // Function to map run. Will keep running until conditions are met or counter is reached
             function mapLoop() {
               counter++;  // Prevent infinite loops
               console.log(`goalLat = ${goalLat}`);
@@ -95,9 +95,9 @@
                   console.log(`routDist - goalRunDist = ${routDist - goalRunDist}`);
 
                   // If distance delta too large, iterate goal position
-                  if (routDist - goalRunDist > 0.2) {
+                  if (Math.abs(routDist - goalRunDist) > 0.2 && counter <= 100) {
                     lastDist = routDist;
-                    goalLat += 0.01;
+                    goalLat -= 0.003;
                     console.log(`runDistInc = ${runDistInc}`);
                     console.log(`Current run distance = ${routDist}`);
                     mapLoop(); 
@@ -109,6 +109,12 @@
                     stop = true; 
                   }
                 } 
+
+                else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) {
+                  setTimeout(function(){
+                    mapLoop(); 
+                  }, 1000);
+                }
                 // Run if directions API failed 
                 else {
                   window.alert('Directions request failed due to ' + status);
@@ -116,6 +122,7 @@
               });
             }
 
+            // Call mapLoop function 
             mapLoop(); 
 
           }
