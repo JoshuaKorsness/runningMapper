@@ -62,10 +62,10 @@
       }
 
       function calculateAndDisplayRoute(directionsService, directionsDisplay, geocoder) {
-        const originText = document.getElementById('origin').value; 
-        const goalRunDist = document.getElementById('distance').value;
-        let runDistInc = 2*goalRunDist*0.007; // Convert to latitude 
-        let lastDist = 0;
+        const originText = document.getElementById('origin').value;   // Pull address
+        const goalRunDist = document.getElementById('distance').value;  // Pull run distance
+        const runArrow = Math.random()*2*Math.PI; // Running direction randomly chosen
+        let dir = ""; 
         let counter = 0;
         let stop = false; 
         // Convert entered address to lat/long
@@ -74,7 +74,7 @@
             // Pull lat/long coordinates, set initial goal pos
             const startLat = results[0].geometry.bounds.ma.j;
             const startLong = results[0].geometry.bounds.ga.j;
-            let goalLat = startLat + runDistInc; 
+            let goalLat = startLat + 0.5*goalRunDist*0.014; 
 
             // Function to map run. Will keep running until conditions are met or counter is reached
             function mapLoop() {
@@ -92,14 +92,21 @@
                 if (status === 'OK') {
                   // Pull route distance 
                   const routDist = response.routes[0].legs[0].distance.text.slice(0, -3); 
-                  console.log(`routDist - goalRunDist = ${routDist - goalRunDist}`);
+                  console.log(`routDist - goalRunDist = ${routDist - 0.5*goalRunDist}`);
 
                   // If distance delta too large, iterate goal position
-                  if (Math.abs(routDist - goalRunDist) > 0.2 && counter <= 100) {
-                    lastDist = routDist;
-                    goalLat -= 0.003;
-                    console.log(`runDistInc = ${runDistInc}`);
-                    console.log(`Current run distance = ${routDist}`);
+                  if (Math.abs(routDist - 0.5*goalRunDist) > 0.5 && routDist - 0.5*goalRunDist < 0 && counter <= 100) {
+                    dir = 'undershot'; 
+                    goalLat += Math.ceil(Math.abs(routDist - 0.5*goalRunDist))*0.001;
+                    console.log(Math.ceil(routDist - 0.5*goalRunDist)*0.001);
+                    console.log(`UNDERSHOT Current run distance = ${routDist}`);
+                    mapLoop(); 
+                  }
+                  else if (Math.abs(routDist - 0.5*goalRunDist) > 0.5 && routDist - 0.5*goalRunDist > 0 && counter <= 100) {
+                    dir = 'overshot'; 
+                    goalLat -= Math.ceil(Math.abs(routDist - 0.5*goalRunDist))*0.001;
+                    console.log(Math.ceil(routDist - 0.5*goalRunDist)*0.001);
+                    console.log(`OVERSHOT Current run distance = ${routDist}`);
                     mapLoop(); 
                   }
                   // If distance delta is close enough, plot route 
@@ -110,11 +117,25 @@
                   }
                 } 
 
+                // Pause if over query limit to reset
                 else if (status == google.maps.GeocoderStatus.OVER_QUERY_LIMIT) {
                   setTimeout(function(){
                     mapLoop(); 
                   }, 1000);
                 }
+
+                // Iterate if no results found
+                else if (status == google.maps.GeocoderStatus.ZERO_RESULTS) {
+                  console.log('ZERO RESULTS'); 
+                  if (dir == 'undershot') {
+                    goalLat += 0.001;
+                  }
+                  else {
+                    goalLat -= 0.001; 
+                  }
+                  mapLoop(); 
+                }
+
                 // Run if directions API failed 
                 else {
                   window.alert('Directions request failed due to ' + status);
