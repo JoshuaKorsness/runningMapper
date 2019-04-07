@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Directions Service</title>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        min-width: 100vw;
+        min-height: 100vh;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+/*      #floating-panel {
+        position: absolute;
+        top: 10px;
+        left: 25%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }*/
+    </style>
+  </head>
+  <body>
+    <div id="floating-panel">
+    <div id="start">
+      <label>Address: </label>
+      <input id="origin" type="text" placeholder="Starting Address">
+      <label>Distance: </label>
+      <input id="distance" type="number" placeholder="Total Run Distance">
+      <button id="genRoute">Route</button>
+    </div>
+    <div id="map"></div>
+    <script>
+      function initMap() {
+        const directionsService = new google.maps.DirectionsService;  // New dir serv object
+        const directionsDisplay = new google.maps.DirectionsRenderer; // Renders directions received from directionsService
+        const geocoder = new google.maps.Geocoder();
+
+        // Draw map
+        const map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 13,
+          center: {lat: 34.104398, lng: -118.313331}
+        });
+        directionsDisplay.setMap(map);
+
+        const onChangeHandler = function() {
+          calculateAndDisplayRoute(directionsService, directionsDisplay, geocoder);
+        };
+        document.getElementById('genRoute').addEventListener('click', onChangeHandler);
+      }
+
+      function calculateAndDisplayRoute(directionsService, directionsDisplay, geocoder) {
+        const originText = document.getElementById('origin').value; 
+        const goalRunDist = document.getElementById('distance').value;
+        let runDistInc = 2*goalRunDist*0.007; // Convert to latitude 
+        let lastDist = 0;
+        let counter = 0;
+        let stop = false; 
+        // Convert entered address to lat/long
+        geocoder.geocode({'address': originText}, function(results, status) {
+          if (status == 'OK') {
+            // Pull lat/long coordinates, set initial goal pos
+            const startLat = results[0].geometry.bounds.ma.j;
+            const startLong = results[0].geometry.bounds.ga.j;
+            let goalLat = startLat + runDistInc; 
+
+            // Loop runs until routDist matches goalDist
+            while (stop === false && counter < 5) {
+              counter++;  // Prevent infinite loops
+              console.log(`goalLat = ${goalLat}`);
+
+              // Routing method 
+              directionsService.route({
+                origin: originText,
+                destination: originText,
+                travelMode: 'DRIVING',
+                waypoints: [{location: new google.maps.LatLng(goalLat, startLong)}]
+              }, function(response, status) {
+                // Proceed if response received 
+                if (status === 'OK') {
+                  // Pull route distance 
+                  const routDist = response.routes[0].legs[0].distance.text.slice(0, -3); 
+                  console.log(`routDist - goalRunDist = ${routDist - goalRunDist}`);
+
+                  // If distance delta too large, iterate goal position
+                  if (routDist - goalRunDist > 0.2) {
+                    lastDist = routDist;
+                    goalLat = goalLat + 0.01;
+                    console.log(`runDistInc = ${runDistInc}`);
+                    console.log(`Current run distance = ${routDist}`);
+                  }
+                  // If distance delta is close enough, plot route 
+                  else {
+                    directionsDisplay.setDirections(response);
+                    console.log(`Leg 1: ${response.routes[0].legs[0].distance.text}`); 
+                    stop = true; 
+                  }
+                } 
+                // Run if directions API failed 
+                else {
+                  window.alert('Directions request failed due to ' + status);
+                }
+              });
+            }
+          }
+          else {
+            alert('Geocode failure');
+          }
+        })
+      }
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD3poLQ7uXIKmpBnR9n6-Qi8mkMl38b9sY&callback=initMap">
+    </script>
+  </body>
+</html>
