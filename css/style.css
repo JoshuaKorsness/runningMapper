@@ -1,0 +1,30 @@
+html, body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+#start {
+	display: flex;
+	justify-content: center; 
+	margin: 10px 0 10px 0;
+}
+
+.label {
+	margin-right: 10px;
+	margin-left: 20px;
+}
+
+#origin {
+	width: 30vw;
+}
+
+#distance {
+	margin-right: 10px;
+	width: 5vw;
+}
+
+#map {
+	min-width: 100vw;
+	min-height: 100vh;
+}
