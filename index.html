@@ -56,16 +56,31 @@
         geocoder.geocode({'address': originText}, function(results, status) {
           if (status == 'OK') {
             // Pull lat/long coordinates, set initial goal pos
-            console.log(results[0].geometry); 
             const startLat = results[0].geometry.bounds.na.j;
             const startLong = results[0].geometry.bounds.ia.j;
-            let goalLong1 = startLong + 0.3*goalRunDist*Math.cos(runArrow)*0.014;
-            let goalLat1 = startLat + 0.3*goalRunDist*Math.sin(runArrow)*0.014; 
-            let goalLong2 = startLong + 0.3*goalRunDist*Math.cos(runArrow + 60*Math.PI/180)*0.014;
-            let goalLat2 = startLat + 0.3*goalRunDist*Math.sin(runArrow + 60*Math.PI/180)*0.014; 
-            console.log(`start lat = ${startLat}, start long = ${startLong}`);
-            console.log(`goal lat1 = ${goalLat1}, goal long1 = ${goalLong1}`);
-            console.log(`goal lat2 = ${goalLat2}, goal long2 = ${goalLong2}`);
+
+            // TO DO: Put all this leg generation in a function 
+            // Generate three random distances that add up to goalRunDist, complete triangle
+            let leg1 = Math.random()*goalRunDist/2; 
+            let leg2 = Math.random()*(goalRunDist/2 - (goalRunDist/2 - leg1)) + goalRunDist/2 - leg1; // Some algebra to ensure triangle isn't impossible to complete
+            let leg3 = goalRunDist - leg1 - leg2; 
+            // Calculate angles to complete triangle (Law of Cos), rad
+            let leg1Theta = Math.acos((Math.pow(leg2, 2) + Math.pow(leg3, 2) - Math.pow(leg1, 2))/(2*leg2*leg3)); 
+            let leg2Theta = Math.acos((Math.pow(leg1, 2) + Math.pow(leg3, 2) - Math.pow(leg2, 2))/(2*leg1*leg3));
+            let leg3Theta = Math.PI - leg1Theta - leg2Theta; 
+            // console.log(`Angle sum = ${leg1Theta + leg2Theta + leg3Theta}`);
+            // console.log(`Dist sum = ${leg1 + leg2 + leg3}`);  
+
+            // Set leg lat/long coordinates
+            let leg1Long = startLong + 0.3*leg1*Math.cos(runArrow)*0.014;
+            let leg1Lat = startLat + 0.3*leg1*Math.sin(runArrow)*0.014;
+            let leg2Long = leg1Long + 0.3*leg2*Math.cos(runArrow + Math.PI + leg3Theta)*0.014;
+            let leg2Lat = leg1Lat + 0.3*leg2*Math.sin(runArrow + Math.PI + leg3Theta)*0.014;
+            const leg3Long = startLong;
+            const leg3Lat = startLat; 
+            // console.log(`start lat = ${startLat}, start long = ${startLong}`);
+            // console.log(`goal lat1 = ${goalLat1}, goal long1 = ${goalLong1}`);
+            // console.log(`goal lat2 = ${goalLat2}, goal long2 = ${goalLong2}`);
 
             // Function to map run. Will keep running until conditions are met or counter is reached
             function mapLoop() {
@@ -73,13 +88,26 @@
 
               // If taking too long, start over
               if (counter > 10) {
-                console.log('----------RESTARTING-----------')
+                console.log('----------RESTARTING-----------');
                 counter = 0; 
-                runArrow = Math.random()*2*Math.PI;
-                goalLong1 = startLong + 0.3*goalRunDist*Math.cos(runArrow)*0.014;
-                goalLat1 = startLat + 0.3*goalRunDist*Math.sin(runArrow)*0.014; 
-                goalLong2 = startLong + 0.3*goalRunDist*Math.cos(runArrow + 60*Math.PI/180)*0.014;
-                goalLat2 = startLat + 0.3*goalRunDist*Math.sin(runArrow + 60*Math.PI/180)*0.014; 
+                // Generate three random distances that add up to goalRunDist, complete triangle
+                let leg1 = Math.random()*goalRunDist/2; 
+                let leg2 = Math.random()*(goalRunDist/2 - (goalRunDist/2 - leg1)) + goalRunDist/2 - leg1; // Some algebra to ensure triangle isn't impossible to complete
+                let leg3 = goalRunDist - leg1 - leg2; 
+                // Calculate angles to complete triangle (Law of Cos), rad
+                let leg1Theta = Math.acos((Math.pow(leg2, 2) + Math.pow(leg3, 2) - Math.pow(leg1, 2))/(2*leg2*leg3)); 
+                let leg2Theta = Math.acos((Math.pow(leg1, 2) + Math.pow(leg3, 2) - Math.pow(leg2, 2))/(2*leg1*leg3));
+                let leg3Theta = Math.PI - leg1Theta - leg2Theta; 
+                // console.log(`Angle sum = ${leg1Theta + leg2Theta + leg3Theta}`);
+                // console.log(`Dist sum = ${leg1 + leg2 + leg3}`);  
+
+                // Set leg lat/long coordinates
+                let leg1Long = startLong + 0.3*leg1*Math.cos(runArrow)*0.014;
+                let leg1Lat = startLat + 0.3*leg1*Math.sin(runArrow)*0.014;
+                let leg2Long = leg1Long + 0.3*leg2*Math.cos(runArrow + Math.PI + leg3Theta)*0.014;
+                let leg2Lat = leg1Lat + 0.3*leg2*Math.sin(runArrow + Math.PI + leg3Theta)*0.014;
+                const leg3Long = startLong;
+                const leg3Lat = startLat; 
               }
 
               // Routing method 
@@ -87,7 +115,7 @@
                 origin: originText,
                 destination: originText,
                 travelMode: 'WALKING',
-                waypoints: [{location: new google.maps.LatLng(goalLat1, goalLong1)}, {location: new google.maps.LatLng(goalLat2, goalLong2)}]
+                waypoints: [{location: new google.maps.LatLng(leg1Lat, leg1Long)}, {location: new google.maps.LatLng(leg2Lat, leg2Long)}]
               }, function(response, status) {
                 console.log(response); 
                 // Proceed if response received 
@@ -99,15 +127,15 @@
                   // If distance delta too large, iterate goal position
                   if (Math.abs(routDist - goalRunDist) > 0.5 && routDist - goalRunDist < 0) {
                     dir = 'undershot'; 
-                    goalLat1 += Math.sin(runArrow)*Math.ceil(Math.abs(routDist - goalRunDist))*0.0005;
-                    goalLong1 += Math.cos(runArrow)*Math.ceil(Math.abs(routDist - goalRunDist))*0.0005;
+                    leg1Lat += Math.sin(runArrow)*Math.ceil(Math.abs(routDist - goalRunDist))*0.001;
+                    leg1Long += Math.cos(runArrow)*Math.ceil(Math.abs(routDist - goalRunDist))*0.001;
                     console.log(`UNDERSHOT Current run distance = ${routDist}`);
                     mapLoop(); 
                   }
                   else if (Math.abs(routDist - goalRunDist) > 0.5 && routDist - goalRunDist > 0) {
                     dir = 'overshot'; 
-                    goalLat1 -= Math.sin(runArrow)*Math.ceil(Math.abs(routDist - goalRunDist))*0.0005;
-                    goalLong1 -= Math.cos(runArrow)*Math.ceil(Math.abs(routDist - goalRunDist))*0.0005;
+                    leg1Lat -= Math.sin(runArrow)*Math.ceil(Math.abs(routDist - goalRunDist))*0.001;
+                    leg1Long -= Math.cos(runArrow)*Math.ceil(Math.abs(routDist - goalRunDist))*0.001;
                     console.log(`OVERSHOT Current run distance = ${routDist}`);
                     mapLoop(); 
                   }
@@ -128,16 +156,17 @@
 
                 // Iterate if no results found
                 else if (status == google.maps.GeocoderStatus.ZERO_RESULTS) {
-                  console.log('ZERO RESULTS'); 
-                  if (dir == 'undershot') {
-                    goalLat1 += 0.0001;
-                    goalLat2 += 0.0001;
-                  }
-                  else {
-                    goalLat1 -= 0.0001; 
-                    goalLat2 -= 0.0001; 
-                  }
-                  mapLoop(); 
+                  console.log('ZERO RESULTS');
+                  console.log(status);  
+                  // if (dir == 'undershot') {
+                  //   goalLat1 += 0.0001;
+                  //   goalLat2 += 0.0001;
+                  // }
+                  // else {
+                  //   goalLat1 -= 0.0001; 
+                  //   goalLat2 -= 0.0001; 
+                  // }
+                  // mapLoop(); 
                 }
 
                 // Run if directions API failed 
