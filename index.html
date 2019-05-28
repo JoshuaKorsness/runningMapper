@@ -20,18 +20,19 @@
     <div id="map"></div>
 
     <script>
-      function initMap() {
-        const directionsService = new google.maps.DirectionsService;  // New dir serv object
+      function initMap() {  // Function to initialize objects, map, and event listeners
+        const directionsService = new google.maps.DirectionsService;  // New dir serv object for calculating directions
         const directionsDisplay = new google.maps.DirectionsRenderer; // Renders directions received from directionsService
-        const geocoder = new google.maps.Geocoder();
+        const geocoder = new google.maps.Geocoder();  // New Geocoder object for lat/long lookups
 
         // Draw map
         const map = new google.maps.Map(document.getElementById('map'), {
           zoom: 13,
-          center: {lat: 34.104398, lng: -118.313331}
+          center: {lat: 34.104398, lng: -118.313331}  // TO DO: Initialize location based on user's location. 
         });
         directionsDisplay.setMap(map);
 
+        // When "genRoute" button is pressed, generate route
         const onChangeHandler = function() {
           calculateAndDisplayRoute(directionsService, directionsDisplay, geocoder);
         };
@@ -39,17 +40,25 @@
       }
 
       function calculateAndDisplayRoute(directionsService, directionsDisplay, geocoder) {
-        const originText = document.getElementById('origin').value;   // Pull address
-        const goalRunDist = document.getElementById('distance').value;  // Pull run distance
+        const originText = document.getElementById('origin').value;   // Pull address from user input
+        const goalRunDist = document.getElementById('distance').value;  // Pull run distance from user input
         let runArrow = Math.random()*2*Math.PI; // Running direction randomly chosen
         let dir = ""; // Will either be overshot or undershot
         let counter = 0;  // Used to prevent infinite loops
+
+        // Stop if entered run distance is too large (takes too long to compute)
+        if (goalRunDist > 26.2) {
+          alert('Max Distance = 26.2 miles');
+          return; 
+        }
+
         // Convert entered address to lat/long
         geocoder.geocode({'address': originText}, function(results, status) {
           if (status == 'OK') {
             // Pull lat/long coordinates, set initial goal pos
-            const startLat = results[0].geometry.bounds.ma.j;
-            const startLong = results[0].geometry.bounds.ga.j;
+            console.log(results[0].geometry); 
+            const startLat = results[0].geometry.bounds.na.j;
+            const startLong = results[0].geometry.bounds.ia.j;
             let goalLong1 = startLong + 0.3*goalRunDist*Math.cos(runArrow)*0.014;
             let goalLat1 = startLat + 0.3*goalRunDist*Math.sin(runArrow)*0.014; 
             let goalLong2 = startLong + 0.3*goalRunDist*Math.cos(runArrow + 60*Math.PI/180)*0.014;
@@ -147,6 +156,8 @@
           }
         })
       }
+
+      // AIzaSyD3poLQ7uXIKmpBnR9n6-Qi8mkMl38b9sY 
     </script>
 
     <script async defer
